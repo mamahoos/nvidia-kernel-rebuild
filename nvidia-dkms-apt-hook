@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/nvidia-dkms-apt-hook
+# Called by apt after package installs. Rebuilds NVIDIA modules for any kernel
+# that is missing them (i.e. a new kernel was just installed).
+# Install path is set by install.sh.
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+REBUILD=/usr/local/sbin/nvidia-kernel-rebuild.sh
+LOG=/var/log/nvidia-kernel-rebuild.log
+
+for vmlinuz in /boot/vmlinuz-*; do
+    KV="${vmlinuz#/boot/vmlinuz-}"
+    # Skip if DKMS modules already built for this kernel
+    if ls "/lib/modules/${KV}/updates/dkms/nvidia-current"*.ko* >/dev/null 2>&1; then
+        continue
+    fi
+    # Only rebuild if headers exist or can be installed (skip non-amd64 kernels)
+    echo "$(date '+%Y-%m-%d %H:%M:%S') apt-hook: new kernel ${KV} detected, rebuilding NVIDIA modules" >> "$LOG"
+    logger -t nvidia-dkms "New kernel ${KV} detected — running nvidia-kernel-rebuild.sh"
+    "$REBUILD" "$KV"
+done
