@@ -1,3 +1,4 @@
 // /etc/apt/apt.conf.d/99nvidia-dkms-rebuild
-// Rebuild NVIDIA DKMS modules after kernel/headers packages are installed.
+// Rebuild NVIDIA DKMS modules after kernel or NVIDIA DKMS package changes.
+// The hook filters irrelevant apt operations and defers work via systemd-run.
 DPkg::Post-Invoke { "/usr/local/sbin/nvidia-dkms-apt-hook || true"; };

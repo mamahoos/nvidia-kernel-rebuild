@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Runs after a new kernel image is installed.
+# Install path is set by install.sh.
+
+set -euo pipefail
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=nvidia-kernel-rebuild-lib.sh
+source "${SCRIPT_DIR}/nvidia-kernel-rebuild-lib.sh"
+
+REBUILD=/usr/local/sbin/nvidia-kernel-rebuild.sh
+KERNEL="${1:-}"
+
+nvidia_dkms_registered || exit 0
+[[ -n "$KERNEL" ]] || exit 0
+
+# Let set -e propagate synchronous rebuild failures; systemd-run scheduling
+# returns 0 because the rebuild runs asynchronously and its outcome is unknown.
+schedule_rebuild "kernel-postinst" "$REBUILD" "$KERNEL"
