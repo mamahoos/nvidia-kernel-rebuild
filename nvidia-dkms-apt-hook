@@ -24,4 +24,7 @@ fi
 
 [[ -n "${KV:-}" ]] || exit 0
 
-schedule_rebuild "apt-hook" "$REBUILD" "$KV" || exit 0
+# apt's DPkg::Post-Invoke wraps this hook with `|| true`, so a non-zero exit
+# would not block apt anyway. Propagating sync failures still surfaces them in
+# logs and to anyone running the hook directly.
+schedule_rebuild "apt-hook" "$REBUILD" "$KV"

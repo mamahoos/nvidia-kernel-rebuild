@@ -16,4 +16,6 @@ KERNEL="${1:-}"
 nvidia_dkms_registered || exit 0
 [[ -n "$KERNEL" ]] || exit 0
 
-schedule_rebuild "kernel-postinst" "$REBUILD" "$KERNEL" || exit 0
+# Let set -e propagate synchronous rebuild failures; systemd-run scheduling
+# returns 0 because the rebuild runs asynchronously and its outcome is unknown.
+schedule_rebuild "kernel-postinst" "$REBUILD" "$KERNEL"

@@ -158,6 +158,12 @@ defer_rebuild() {
     "$rebuild" "$kernel"
 }
 
+# Schedule a rebuild via systemd-run when available, otherwise run synchronously.
+# Returns:
+#   0  — skipped (invalid kernel version) or scheduled asynchronously
+#   *  — synchronous rebuild's exit code, so callers under `set -e` propagate
+#        rebuild failures. Asynchronous (systemd-run) scheduling cannot know
+#        the rebuild's outcome and always returns 0.
 schedule_rebuild() {
     local source="$1"
     local rebuild="$2"
@@ -165,7 +171,7 @@ schedule_rebuild() {
 
     if ! validate_kernel_version "$kernel"; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') ${source}: ignoring invalid kernel version: ${kernel}" >>"$LOG"
-        return 1
+        return 0
     fi
 
     log_rebuild_schedule "$source" "$kernel"

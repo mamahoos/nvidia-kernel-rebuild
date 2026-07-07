@@ -8,6 +8,11 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../nvidia-kernel-rebuild-lib.sh
 source "${REPO_ROOT}/nvidia-kernel-rebuild-lib.sh"
 
+# Redirect lib log to a writable sandbox so schedule_rebuild's logging
+# helpers don't hit /var/log during tests.
+LOG="$(mktemp -t nvidia-kernel-rebuild-test.XXXXXX.log)"
+export LOG
+
 PASS=0
 FAIL=0
 
@@ -132,11 +137,53 @@ test_nullglob_not_leaked() {
   rm -rf "$tmp"
 }
 
+test_schedule_rebuild_skips_invalid_version() {
+    # defer_rebuild must not be called for invalid versions; if it is, fail.
+    defer_rebuild() { echo "UNEXPECTED defer_rebuild call" >&2; return 99; }
+
+    local rc
+    set +e
+    schedule_rebuild "test" "/fake/rebuild" "bad version"
+    rc=$?
+    set -e
+
+    assert_eq "invalid version returns 0 (skip, not an error)" 0 "$rc"
+}
+
+test_schedule_rebuild_propagates_sync_failure() {
+    # Simulate a synchronous rebuild failure (no systemd-run available).
+    defer_rebuild() { return 5; }
+
+    local rc
+    set +e
+    schedule_rebuild "test" "/fake/rebuild" "6.12.0-amd64"
+    rc=$?
+    set -e
+
+    assert_eq "synchronous rebuild failure propagated" 5 "$rc"
+}
+
+test_schedule_rebuild_propagates_async_success() {
+    # Simulate systemd-run --no-block scheduling (always returns 0).
+    defer_rebuild() { return 0; }
+
+    local rc
+    set +e
+    schedule_rebuild "test" "/fake/rebuild" "6.12.0-amd64"
+    rc=$?
+    set -e
+
+    assert_eq "async scheduling returns 0" 0 "$rc"
+}
+
 test_validate_kernel_version
 test_parse_dkms_status_line
 test_nvidia_module_exists
 test_boot_kernel_selection
 test_nullglob_not_leaked
+test_schedule_rebuild_skips_invalid_version
+test_schedule_rebuild_propagates_sync_failure
+test_schedule_rebuild_propagates_async_success
 
 echo ""
 echo "Results: ${PASS} passed, ${FAIL} failed"
