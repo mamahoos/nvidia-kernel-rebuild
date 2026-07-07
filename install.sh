@@ -6,6 +6,8 @@
 
 set -euo pipefail
 
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DEST=/usr/local/sbin/nvidia-kernel-rebuild-lib.sh
 REBUILD_DEST=/usr/local/sbin/nvidia-kernel-rebuild.sh
@@ -26,8 +28,8 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     exit 0
 fi
 
-for dep in /usr/sbin/dkms update-initramfs apt-get; do
-    if [[ ! -x "$dep" ]]; then
+for dep in dkms update-initramfs apt-get; do
+    if ! command -v "$dep" >/dev/null 2>&1; then
         echo "ERROR: required command not found: $dep"
         echo "Install with: apt install dkms initramfs-tools"
         exit 1
