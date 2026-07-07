@@ -42,8 +42,11 @@ HEADERS_PKG="linux-headers-${KERNEL}"
 if ! kernel_headers_present "$KERNEL"; then
     echo "  Installing missing headers: $HEADERS_PKG" | tee -a "$LOG"
     if ! apt-get -y -o DPkg::Lock::Timeout=120 install "$HEADERS_PKG" >>"$LOG" 2>&1; then
-        echo "  WARNING: Could not install $HEADERS_PKG — trying linux-headers-amd64" | tee -a "$LOG"
-        apt-get -y -o DPkg::Lock::Timeout=120 install linux-headers-amd64 >>"$LOG" 2>&1 || true
+        META_HEADERS="$(headers_meta_package || true)"
+        if [[ -n "$META_HEADERS" ]]; then
+            echo "  WARNING: Could not install $HEADERS_PKG — trying $META_HEADERS" | tee -a "$LOG"
+            apt-get -y -o DPkg::Lock::Timeout=120 install "$META_HEADERS" >>"$LOG" 2>&1 || true
+        fi
     fi
 fi
 
@@ -65,20 +68,14 @@ else
     FAILED=0
     while IFS= read -r line; do
         [[ -n "$line" ]] || continue
+        parse_dkms_status_line "$line" || continue
 
-        MOD="${line%%/*}"
-        REST="${line#*/}"
-        VER="${REST%%,*}"
-        VER="${VER// /}"
-        STATUS="${line##*: }"
-        STATUS="${STATUS// /}"
-
-        if [[ "$STATUS" != "installed" ]]; then
-            echo "  Rebuilding: $MOD/$VER for $KERNEL" | tee -a "$LOG"
-            if $DKMS install -m "$MOD" -v "$VER" -k "$KERNEL" --force >>"$LOG" 2>&1; then
-                echo "    OK: $MOD/$VER rebuilt" | tee -a "$LOG"
+        if [[ "$dkms_status" != "installed" ]]; then
+            echo "  Rebuilding: $dkms_mod/$dkms_ver for $KERNEL" | tee -a "$LOG"
+            if $DKMS install -m "$dkms_mod" -v "$dkms_ver" -k "$KERNEL" --force >>"$LOG" 2>&1; then
+                echo "    OK: $dkms_mod/$dkms_ver rebuilt" | tee -a "$LOG"
             else
-                echo "    FAILED: $MOD/$VER could not be built" | tee -a "$LOG"
+                echo "    FAILED: $dkms_mod/$dkms_ver could not be built" | tee -a "$LOG"
                 FAILED=$((FAILED + 1))
             fi
         fi
@@ -88,6 +85,8 @@ else
         echo "  ERROR: $FAILED module(s) failed to build. See $LOG for details." | tee -a "$LOG"
         exit 1
     fi
+
+    echo "  WARNING: DKMS autoinstall failed but all modules report installed." | tee -a "$LOG"
 fi
 
 if nvidia_dkms_registered; then
@@ -96,7 +95,8 @@ if nvidia_dkms_registered; then
         echo "  ✓ NVIDIA module verified: $NVIDIA_MOD" | tee -a "$LOG"
     else
         echo "  ERROR: NVIDIA DKMS is registered but no nvidia*.ko module was built for $KERNEL." | tee -a "$LOG"
-        ls "/lib/modules/${KERNEL}/updates/dkms/" 2>/dev/null | tee -a "$LOG" || true
+        find "/lib/modules/${KERNEL}/updates/dkms/" -maxdepth 1 -mindepth 1 -printf '%f\n' 2>/dev/null \
+            | tee -a "$LOG" || true
         exit 1
     fi
 fi

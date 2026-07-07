@@ -1,28 +1,19 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Runs after a new kernel image is installed.
 # Install path is set by install.sh.
 
-set -e
+set -euo pipefail
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=nvidia-kernel-rebuild-lib.sh
+source "${SCRIPT_DIR}/nvidia-kernel-rebuild-lib.sh"
+
 REBUILD=/usr/local/sbin/nvidia-kernel-rebuild.sh
-LOG=/var/log/nvidia-kernel-rebuild.log
 KERNEL="${1:-}"
 
-if ! /usr/sbin/dkms status 2>/dev/null | grep -qE '^nvidia'; then
-    exit 0
-fi
+nvidia_dkms_registered || exit 0
+[[ -n "$KERNEL" ]] || exit 0
 
-if [ -z "$KERNEL" ]; then
-    exit 0
-fi
-
-echo "$(date '+%Y-%m-%d %H:%M:%S') kernel-postinst: scheduling rebuild for ${KERNEL}" >>"$LOG"
-
-if command -v systemd-run >/dev/null 2>&1; then
-    exec systemd-run --no-block --description="nvidia-kernel-rebuild ${KERNEL}" \
-        "$REBUILD" "$KERNEL"
-fi
-
-exec "$REBUILD" "$KERNEL"
+schedule_rebuild "kernel-postinst" "$REBUILD" "$KERNEL" || exit 0

@@ -24,6 +24,4 @@ fi
 
 [[ -n "${KV:-}" ]] || exit 0
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') apt-hook: scheduling rebuild for ${KV}" >>"$LOG"
-logger -t nvidia-dkms "Scheduling nvidia-kernel-rebuild for kernel ${KV}"
-defer_rebuild "$REBUILD" "$KV"
+schedule_rebuild "apt-hook" "$REBUILD" "$KV" || exit 0
