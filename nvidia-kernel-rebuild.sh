@@ -88,10 +88,11 @@ else
     if [[ -f "$NVIDIA_MOD_UNZ" ]]; then
         echo "  ✓ NVIDIA module verified: $NVIDIA_MOD_UNZ" | tee -a "$LOG"
     else
-        echo "  WARNING: NVIDIA module not found at expected path after rebuild." | tee -a "$LOG"
+        echo "  ERROR: NVIDIA module not found at expected path after rebuild." | tee -a "$LOG"
         echo "    Expected: $NVIDIA_MOD" | tee -a "$LOG"
         # Show what's actually there
         ls "/lib/modules/${KERNEL}/updates/dkms/" 2>/dev/null | tee -a "$LOG" || true
+        exit 1
     fi
 fi
 
@@ -100,7 +101,8 @@ echo "  Regenerating initramfs for $KERNEL..." | tee -a "$LOG"
 if update-initramfs -u -k "$KERNEL" >> "$LOG" 2>&1; then
     echo "  ✓ initramfs updated." | tee -a "$LOG"
 else
-    echo "  WARNING: initramfs update failed — check $LOG" | tee -a "$LOG"
+    echo "  ERROR: initramfs update failed — check $LOG" | tee -a "$LOG"
+    exit 1
 fi
 
 # ── Final DKMS status ─────────────────────────────────────────────────────────
