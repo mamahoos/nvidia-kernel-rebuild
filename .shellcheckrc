@@ -1,0 +1,20 @@
+# Silence shellcheck directives that are intentional or unavoidable in this repo.
+# CI runs `shellcheck -S error`, so only error-severity findings block; the
+# items below are info/warning level and would not block anyway, but listing
+# them keeps local runs quiet and documents why they appear.
+
+# Test files redefine helpers (defer_rebuild, nvidia_module_exists, ...) as
+# fakes/mocks; shellcheck sees the original definitions as unreachable.
+disable=SC2317
+
+# parse_dkms_status_line assigns dkms_mod/dkms_status for callers via shell
+# dynamic scope; shellcheck flags them as unused inside the function.
+disable=SC2034
+
+# Test files use single-quoted markers like 'source "$LIB"' that must stay
+# literal (matched against file content); shellcheck warns about no expansion.
+disable=SC2016
+
+# dkms_mod/dkms_ver/dkms_status are assigned in the lib and consumed in the
+# rebuild script and tests via shell dynamic scope.
+disable=SC2154
