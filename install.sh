@@ -17,37 +17,37 @@ APT_HOOK_DEST=/etc/apt/apt.conf.d/99nvidia-dkms-rebuild
 LOG=/var/log/nvidia-kernel-rebuild.log
 
 if [[ $EUID -ne 0 ]]; then
-    echo "ERROR: Run as root: sudo $0"
-    exit 1
+  echo "ERROR: Run as root: sudo $0"
+  exit 1
 fi
 
 if [[ "${1:-}" == "--uninstall" ]]; then
-    echo "Uninstalling nvidia-kernel-rebuild..."
-    rm -f "$LIB_DEST" "$REBUILD_DEST" "$HOOK_DEST" "$POSTINST_DEST" "$APT_HOOK_DEST"
-    echo "Done. Log retained at $LOG"
-    exit 0
+  echo "Uninstalling nvidia-kernel-rebuild..."
+  rm -f "$LIB_DEST" "$REBUILD_DEST" "$HOOK_DEST" "$POSTINST_DEST" "$APT_HOOK_DEST"
+  echo "Done. Log retained at $LOG"
+  exit 0
 fi
 
 for dep in dkms update-initramfs apt-get; do
-    if ! command -v "$dep" >/dev/null 2>&1; then
-        echo "ERROR: required command not found: $dep"
-        echo "Install with: apt install dkms initramfs-tools"
-        exit 1
-    fi
+  if ! command -v "$dep" >/dev/null 2>&1; then
+    echo "ERROR: required command not found: $dep"
+    echo "Install with: apt install dkms initramfs-tools"
+    exit 1
+  fi
 done
 
 if ! /usr/sbin/dkms status 2>/dev/null | grep -qE '^nvidia'; then
-    echo "WARNING: no NVIDIA DKMS modules registered yet."
-    echo "Install nvidia-kernel-dkms before expecting automatic rebuilds."
+  echo "WARNING: no NVIDIA DKMS modules registered yet."
+  echo "Install nvidia-kernel-dkms before expecting automatic rebuilds."
 fi
 
 echo "Installing nvidia-kernel-rebuild..."
 
 install -m 755 "$SCRIPT_DIR/nvidia-kernel-rebuild-lib.sh" "$LIB_DEST"
-install -m 755 "$SCRIPT_DIR/nvidia-kernel-rebuild.sh"       "$REBUILD_DEST"
-install -m 755 "$SCRIPT_DIR/nvidia-dkms-apt-hook"           "$HOOK_DEST"
-install -m 755 "$SCRIPT_DIR/kernel-postinst-hook"             "$POSTINST_DEST"
-install -m 644 "$SCRIPT_DIR/99nvidia-dkms-rebuild"          "$APT_HOOK_DEST"
+install -m 755 "$SCRIPT_DIR/nvidia-kernel-rebuild.sh" "$REBUILD_DEST"
+install -m 755 "$SCRIPT_DIR/nvidia-dkms-apt-hook" "$HOOK_DEST"
+install -m 755 "$SCRIPT_DIR/kernel-postinst-hook" "$POSTINST_DEST"
+install -m 644 "$SCRIPT_DIR/99nvidia-dkms-rebuild" "$APT_HOOK_DEST"
 
 sed -i "s|^REBUILD=.*|REBUILD=${REBUILD_DEST}|" "$HOOK_DEST"
 # The postinst hook lives in /etc/kernel/postinst.d/, not next to the lib,

@@ -1,0 +1,39 @@
+name: Install smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "install.sh"
+      - "kernel-postinst-hook"
+      - "nvidia-dkms-apt-hook"
+      - "nvidia-kernel-rebuild-lib.sh"
+      - "nvidia-kernel-rebuild.sh"
+      - ".github/scripts/install-smoke.sh"
+      - ".github/workflows/install-smoke.yml"
+  pull_request:
+    paths:
+      - "install.sh"
+      - "kernel-postinst-hook"
+      - "nvidia-dkms-apt-hook"
+      - "nvidia-kernel-rebuild-lib.sh"
+      - "nvidia-kernel-rebuild.sh"
+      - ".github/scripts/install-smoke.sh"
+      - ".github/workflows/install-smoke.yml"
+
+concurrency:
+  group: install-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install-smoke:
+    name: install.sh + hooks end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install smoke test
+        run: sudo bash .github/scripts/install-smoke.sh
