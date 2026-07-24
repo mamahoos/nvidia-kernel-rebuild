@@ -6,9 +6,12 @@ set -euo pipefail
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# This hook is installed to /etc/kernel/postinst.d/, but the shared lib lives
+# in /usr/local/sbin/. install.sh rewrites LIB below to the absolute install
+# path, so we must NOT source relative to our own directory.
+LIB=/usr/local/sbin/nvidia-kernel-rebuild-lib.sh
 # shellcheck source=nvidia-kernel-rebuild-lib.sh
-source "${SCRIPT_DIR}/nvidia-kernel-rebuild-lib.sh"
+source "$LIB"
 
 REBUILD=/usr/local/sbin/nvidia-kernel-rebuild.sh
 KERNEL="${1:-}"

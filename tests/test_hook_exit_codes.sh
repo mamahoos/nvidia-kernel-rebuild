@@ -48,12 +48,13 @@ defer_rebuild() { "$@"; }
 EOF
 
 # Source the override after the lib in each hook by injecting a line.
+# The apt hook sources via SCRIPT_DIR; the postinst hook sources via $LIB
+# (it lives in a different directory than the lib). Match each marker.
 inject_override() {
     local file="$1"
-    local marker='source "${SCRIPT_DIR}/nvidia-kernel-rebuild-lib.sh"'
+    local marker="$2"
     # shellcheck disable=SC2016
     local inject='source "'"${OVERRIDE_LIB}"'"'
-    # Use a temp file to perform the insertion safely.
     local tmp="${file}.tmp"
     awk -v inject="$inject" -v marker="$marker" '
         $0 == marker { print; print inject; next }
@@ -61,8 +62,11 @@ inject_override() {
     ' "$file" > "$tmp" && mv "$tmp" "$file"
     chmod +x "$file"
 }
-inject_override "$FAKE_APT_HOOK"
-inject_override "$FAKE_POSTINST_HOOK"
+inject_override "$FAKE_APT_HOOK"      'source "${SCRIPT_DIR}/nvidia-kernel-rebuild-lib.sh"'
+inject_override "$FAKE_POSTINST_HOOK" 'source "$LIB"'
+
+# Point the postinst hook's LIB at the sandbox lib (install.sh does this via sed).
+sed -i "s|^LIB=.*|LIB=${FAKE_LIB}|" "$FAKE_POSTINST_HOOK"
 
 # Also redirect the lib's LOG to the sandbox log.
 sed -i "s|^LOG=.*|LOG=${FAKE_LOG}|" "$FAKE_LIB"
