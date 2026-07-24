@@ -50,6 +50,9 @@ install -m 755 "$SCRIPT_DIR/kernel-postinst-hook"             "$POSTINST_DEST"
 install -m 644 "$SCRIPT_DIR/99nvidia-dkms-rebuild"          "$APT_HOOK_DEST"
 
 sed -i "s|^REBUILD=.*|REBUILD=${REBUILD_DEST}|" "$HOOK_DEST"
+# The postinst hook lives in /etc/kernel/postinst.d/, not next to the lib,
+# so it cannot use SCRIPT_DIR to find the lib. Point it at the absolute path.
+sed -i "s|^LIB=.*|LIB=${LIB_DEST}|" "$POSTINST_DEST"
 
 touch "$LOG"
 chmod 644 "$LOG"
