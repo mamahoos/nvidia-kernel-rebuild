@@ -15,11 +15,11 @@ REBUILD=/usr/local/sbin/nvidia-kernel-rebuild.sh
 nvidia_dkms_registered || exit 0
 
 if apt_recent_nvidia_driver_change; then
-    KV="$(get_newest_installed_kernel || true)"
+  KV="$(get_newest_installed_kernel || true)"
 elif apt_recent_kernel_change; then
-    KV="$(get_newest_kernel_missing_nvidia || true)"
+  KV="$(get_newest_kernel_missing_nvidia || true)"
 else
-    exit 0
+  exit 0
 fi
 
 [[ -n "${KV:-}" ]] || exit 0
